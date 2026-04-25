@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.routes import sessions, insights
 from app.db.session import Base, SessionLocal, engine
@@ -52,8 +53,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router(sessions.router)
-# app.include_router(insights.router)
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Without this, unhandled exceptions bypass CORSMiddleware entirely —
+    Starlette's default error response is generated above the CORS layer,
+    so the browser sees a response with no Access-Control-Allow-Origin
+    header and blocks it, surfacing as a confusing 'Failed to fetch' in
+    the frontend instead of the real error. This handler runs at a layer
+    where CORS headers still get attached, and returns the real error
+    message so the frontend (and you) can actually see what went wrong.
+    """
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+
+app.include_router(sessions.router)
+app.include_router(insights.router)
 
 
 @app.get("/health")

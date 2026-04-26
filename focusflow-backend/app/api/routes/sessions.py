@@ -40,6 +40,7 @@ def create_session(payload: SessionCreate, db: DBSession = Depends(get_db)):
 
 @router.post("/{session_id}/breakdown", response_model=BreakdownResponse)
 def breakdown_session(session_id: str, db: DBSession = Depends(get_db)):
+    session_id = session_id.strip()
     session = db.get(models.Session, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -68,6 +69,7 @@ def breakdown_session(session_id: str, db: DBSession = Depends(get_db)):
 
 @router.post("/{session_id}/schedule", response_model=ScheduleResponse)
 def schedule_session(session_id: str, db: DBSession = Depends(get_db)):
+    session_id = session_id.strip()
     session = db.get(models.Session, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -121,6 +123,7 @@ def schedule_session(session_id: str, db: DBSession = Depends(get_db)):
 
 @router.patch("/blocks/{block_id}")
 def update_block(block_id: str, payload: BlockUpdate, db: DBSession = Depends(get_db)):
+    block_id = block_id.strip()
     block = db.get(models.PomodoroBlock, block_id)
     if not block:
         raise HTTPException(status_code=404, detail="Block not found")
@@ -136,6 +139,7 @@ def complete_session(session_id: str, db: DBSession = Depends(get_db)):
     Call once a day's session is done. Summarizes what happened and stores
     an embedding of it, feeding future RAG-powered insights.
     """
+    session_id = session_id.strip()
     session = db.get(models.Session, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")

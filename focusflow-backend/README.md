@@ -90,8 +90,8 @@ docker exec -it focusflow-db psql -U postgres -d focusflow -c "INSERT INTO users
 
 **6. Run the app**
 
-```
-uvicorn app.main:app --reload
+```bash
+python -m uvicorn app.main:app --reload
 ```
 
 Visit `http://localhost:8000/docs` for the interactive Swagger UI.

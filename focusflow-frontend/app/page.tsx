@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signOut } from 'aws-amplify/auth';
 import Timeline from '@/components/Timeline';
 import {
   createSession,
@@ -109,17 +110,33 @@ export default function Home() {
   const daySpanMinutes =
     (new Date(dayEnd).getTime() - new Date(dayStart).getTime()) / 60000;
 
+  async function handleSignOut() {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out: ', error);
+    }
+  }
+
   return (
     <main className="min-h-screen px-6 py-16 md:py-24 max-w-3xl mx-auto">
-      <header className="mb-14">
-        <p className="font-mono text-xs tracking-widest text-work uppercase mb-3">
-          FocusFlow
-        </p>
-        <h1 className="font-display text-4xl md:text-5xl leading-tight text-ink">
-          Say the day out loud.
-          <br />
-          <span className="text-muted">We'll cut it into blocks you can finish.</span>
-        </h1>
+      <header className="mb-14 flex justify-between items-start">
+        <div>
+          <p className="font-mono text-xs tracking-widest text-work uppercase mb-3">
+            FocusFlow
+          </p>
+          <h1 className="font-display text-4xl md:text-5xl leading-tight text-ink">
+            Say the day out loud.
+            <br />
+            <span className="text-muted">We'll cut it into blocks you can finish.</span>
+          </h1>
+        </div>
+        <button 
+          onClick={handleSignOut}
+          className="text-xs font-mono text-muted hover:text-ink transition-colors border border-border px-3 py-1.5 rounded-md"
+        >
+          Sign out
+        </button>
       </header>
 
       {/* Step 1: input */}

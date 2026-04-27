@@ -1,3 +1,5 @@
+import { fetchAuthSession } from 'aws-amplify/auth';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface Subtask {
@@ -15,10 +17,19 @@ export interface ScheduleBlock {
 }
 
 async function fetchApi(path: string, options?: RequestInit) {
+  let token = '';
+  try {
+    const session = await fetchAuthSession();
+    token = session.tokens?.idToken?.toString() || '';
+  } catch (e) {
+    // Not logged in or no session
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });

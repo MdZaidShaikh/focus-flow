@@ -27,10 +27,16 @@ export const metadata = {
   description: 'Break the day into blocks you can actually finish.',
 };
 
+import AmplifyProvider from '@/components/AmplifyProvider';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${grotesk.variable} ${plexMono.variable}`}>
-      <body className="font-body">{children}</body>
+      <body className="font-body">
+        <AmplifyProvider>
+          {children}
+        </AmplifyProvider>
+      </body>
     </html>
   );
 }

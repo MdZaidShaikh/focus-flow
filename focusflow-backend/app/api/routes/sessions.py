@@ -18,16 +18,21 @@ from app.services.rag_service import store_session_embedding
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
-# NOTE: user_id would normally come from the validated Cognito JWT (via a
-# dependency that decodes the token). Left as a placeholder here to keep
-# this scaffold focused — wire up real auth before deploying.
+from app.api.deps import get_current_user
+from app.models.db_models import User
+
+# Left for backward compatibility if other modules import it, but endpoints now use get_current_user
 PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000"
 
 
 @router.post("", status_code=201)
-def create_session(payload: SessionCreate, db: DBSession = Depends(get_db)):
+def create_session(
+    payload: SessionCreate,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     session = models.Session(
-        user_id=PLACEHOLDER_USER_ID,
+        user_id=current_user.id,
         raw_input=payload.raw_input,
         day_start=payload.day_start,
         day_end=payload.day_end,
@@ -39,10 +44,14 @@ def create_session(payload: SessionCreate, db: DBSession = Depends(get_db)):
 
 
 @router.post("/{session_id}/breakdown", response_model=BreakdownResponse)
-def breakdown_session(session_id: str, db: DBSession = Depends(get_db)):
+def breakdown_session(
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     session_id = session_id.strip()
     session = db.get(models.Session, session_id)
-    if not session:
+    if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found")
 
     subtasks = break_down_task(session.raw_input)
@@ -68,10 +77,14 @@ def breakdown_session(session_id: str, db: DBSession = Depends(get_db)):
 
 
 @router.post("/{session_id}/schedule", response_model=ScheduleResponse)
-def schedule_session(session_id: str, db: DBSession = Depends(get_db)):
+def schedule_session(
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     session_id = session_id.strip()
     session = db.get(models.Session, session_id)
-    if not session:
+    if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found")
 
     tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()
@@ -122,10 +135,20 @@ def schedule_session(session_id: str, db: DBSession = Depends(get_db)):
 
 
 @router.patch("/blocks/{block_id}")
-def update_block(block_id: str, payload: BlockUpdate, db: DBSession = Depends(get_db)):
+def update_block(
+    block_id: str,
+    payload: BlockUpdate,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     block_id = block_id.strip()
     block = db.get(models.PomodoroBlock, block_id)
     if not block:
+        raise HTTPException(status_code=404, detail="Block not found")
+        
+    # Verify the block belongs to a session owned by the user
+    session = db.get(models.Session, block.session_id)
+    if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Block not found")
 
     block.completed = payload.completed
@@ -134,14 +157,18 @@ def update_block(block_id: str, payload: BlockUpdate, db: DBSession = Depends(ge
 
 
 @router.post("/{session_id}/complete")
-def complete_session(session_id: str, db: DBSession = Depends(get_db)):
+def complete_session(
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Call once a day's session is done. Summarizes what happened and stores
     an embedding of it, feeding future RAG-powered insights.
     """
     session_id = session_id.strip()
     session = db.get(models.Session, session_id)
-    if not session:
+    if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Session not found")
 
     tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()

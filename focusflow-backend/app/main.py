@@ -13,10 +13,8 @@ PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables and a placeholder user on startup so the app is usable
-    # immediately after a local database is available.
+    # Tables are now managed by Alembic migrations
     try:
-        Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
             existing_user = db.query(db_models.User).filter(db_models.User.id == PLACEHOLDER_USER_ID).first()

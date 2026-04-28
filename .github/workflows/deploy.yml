@@ -1,4 +1,4 @@
-name: Deploy Backend
+name: CI / Validate
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - master
     paths:
       - 'focusflow-backend/**'
+      - 'focusflow-frontend/**'
       - '.github/workflows/deploy.yml'
 
 jobs:
@@ -42,43 +43,26 @@ jobs:
         run: |
           echo "No tests to run yet. Add pytest tests to the tests/ directory."
 
-  deploy:
-    needs: lint-and-test
+  frontend-lint-and-build:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     defaults:
       run:
-        working-directory: ./focusflow-backend
-        
+        working-directory: ./focusflow-frontend
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: focusflow-api
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './focusflow-frontend/package-lock.json'
           
-      - name: Update AWS Lambda function code
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: focusflow-api
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          aws lambda update-function-code \
-            --function-name focusflow-api \
-            --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run linter
+        run: npm run lint --if-present
+        
+      - name: Build project
+        run: npm run build

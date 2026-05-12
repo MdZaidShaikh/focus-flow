@@ -44,3 +44,24 @@ class InsightsResponse(BaseModel):
     query: str
     relevant_sessions: List[str]  # summaries of the most similar past sessions
     insight: str  # LLM-generated synthesis of the pattern
+
+class SessionHistoryItem(BaseModel):
+    id: str
+    raw_input: str
+    day_start: datetime
+    day_end: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class SessionHistoryResponse(BaseModel):
+    sessions: List[SessionHistoryItem]
+
+class SessionDetailResponse(BaseModel):
+    session_id: str
+    raw_input: str
+    day_start: datetime
+    day_end: datetime
+    subtasks: List[SubtaskOut]
+    blocks: List[PomodoroBlockOut]

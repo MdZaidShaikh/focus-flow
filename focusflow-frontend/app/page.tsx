@@ -9,9 +9,12 @@ import {
   scheduleSession,
   completeSession,
   getInsights,
+  getSessionDetails,
   Subtask,
   ScheduleBlock,
 } from '@/lib/api';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
 
 function todayAt(hour: number, minute = 0) {
   const d = new Date();
@@ -28,7 +31,10 @@ function toLocalInputValue(d: Date) {
 
 type Stage = 'input' | 'breakdown' | 'scheduled';
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const sessionIdParam = searchParams.get('session');
+
   const [rawInput, setRawInput] = useState('');
   const [dayStart, setDayStart] = useState(toLocalInputValue(todayAt(9)));
   const [dayEnd, setDayEnd] = useState(toLocalInputValue(todayAt(17)));
@@ -43,6 +49,35 @@ export default function Home() {
 
   const [insightQuery, setInsightQuery] = useState('');
   const [insight, setInsight] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (sessionIdParam) {
+      setLoading('load_session');
+      getSessionDetails(sessionIdParam).then(data => {
+        setSessionId(data.session_id);
+        setRawInput(data.raw_input);
+        setDayStart(toLocalInputValue(new Date(data.day_start + "Z"))); // parse as UTC
+        setDayEnd(toLocalInputValue(new Date(data.day_end + "Z")));
+        setSubtasks(data.subtasks);
+        setBlocks(data.blocks);
+        if (data.blocks.length > 0) setStage('scheduled');
+        else if (data.subtasks.length > 0) setStage('breakdown');
+        else setStage('input');
+      }).catch(err => {
+        console.error(err);
+        setError("Could not load session.");
+      }).finally(() => setLoading(null));
+    } else {
+      setSessionId(null);
+      setRawInput('');
+      setDayStart(toLocalInputValue(todayAt(9)));
+      setDayEnd(toLocalInputValue(todayAt(17)));
+      setSubtasks([]);
+      setBlocks([]);
+      setStage('input');
+      setError(null);
+    }
+  }, [sessionIdParam]);
 
   async function handleBreakdown() {
     setError(null);
@@ -278,5 +313,13 @@ export default function Home() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen px-6 py-16 md:py-24 max-w-3xl mx-auto flex items-center justify-center text-muted">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

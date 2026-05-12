@@ -28,13 +28,19 @@ export const metadata = {
 };
 
 import AmplifyProvider from '@/components/AmplifyProvider';
+import Sidebar from '@/components/Sidebar';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${grotesk.variable} ${plexMono.variable}`}>
       <body className="font-body">
         <AmplifyProvider>
-          {children}
+          <div className="flex w-full min-h-screen">
+            <Sidebar />
+            <div className="flex-1 w-full overflow-y-auto bg-bg">
+              {children}
+            </div>
+          </div>
         </AmplifyProvider>
       </body>
     </html>

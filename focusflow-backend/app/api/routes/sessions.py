@@ -11,6 +11,9 @@ from app.schemas.schemas import (
     ScheduleResponse,
     PomodoroBlockOut,
     BlockUpdate,
+    SessionHistoryResponse,
+    SessionHistoryItem,
+    SessionDetailResponse,
 )
 from app.services.llm_service import break_down_task
 from app.services.scheduler_service import schedule_pomodoros
@@ -41,6 +44,64 @@ def create_session(
     db.commit()
     db.refresh(session)
     return {"session_id": session.id}
+
+
+@router.get("", response_model=SessionHistoryResponse)
+def get_sessions(
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve all past sessions for the current user, ordered by newest first."""
+    sessions = (
+        db.query(models.Session)
+        .filter(models.Session.user_id == current_user.id)
+        .order_by(models.Session.created_at.desc())
+        .all()
+    )
+    return SessionHistoryResponse(
+        sessions=[SessionHistoryItem.model_validate(s) for s in sessions]
+    )
+
+
+@router.get("/{session_id}", response_model=SessionDetailResponse)
+def get_session_details(
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve full details of a specific session to resume or view it."""
+    session_id = session_id.strip()
+    session = db.get(models.Session, session_id)
+    if not session or session.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()
+    blocks = (
+        db.query(models.PomodoroBlock)
+        .filter(models.PomodoroBlock.session_id == session_id)
+        .order_by(models.PomodoroBlock.start_time)
+        .all()
+    )
+    title_by_task_id = {t.id: t.title for t in tasks}
+
+    return SessionDetailResponse(
+        session_id=str(session.id),
+        raw_input=session.raw_input,
+        day_start=session.day_start,
+        day_end=session.day_end,
+        subtasks=[SubtaskOut(title=t.title, estimated_pomodoros=t.estimated_pomodoros) for t in tasks],
+        blocks=[
+            PomodoroBlockOut(
+                id=str(b.id),
+                task_title="Break" if b.is_break else title_by_task_id.get(b.task_id, "Unknown"),
+                start_time=b.start_time,
+                end_time=b.end_time,
+                is_break=b.is_break,
+                completed=b.completed,
+            )
+            for b in blocks
+        ],
+    )
 
 
 @router.post("/{session_id}/breakdown", response_model=BreakdownResponse)

@@ -7,6 +7,27 @@ export interface Subtask {
   estimated_pomodoros: number;
 }
 
+export interface SessionHistoryItem {
+  id: string;
+  raw_input: string;
+  day_start: string;
+  day_end: string;
+  created_at: string;
+}
+
+export interface SessionHistoryResponse {
+  sessions: SessionHistoryItem[];
+}
+
+export interface SessionDetailResponse {
+  session_id: string;
+  raw_input: string;
+  day_start: string;
+  day_end: string;
+  subtasks: Subtask[];
+  blocks: ScheduleBlock[];
+}
+
 export interface ScheduleBlock {
   id: string;
   task_title: string;
@@ -66,6 +87,18 @@ export function scheduleSession(sessionId: string) {
 export function completeSession(sessionId: string) {
   return fetchApi(`/sessions/${sessionId}/complete`, {
     method: 'POST',
+  });
+}
+
+export function getSessionHistory(): Promise<SessionHistoryResponse> {
+  return fetchApi('/sessions', {
+    method: 'GET',
+  });
+}
+
+export function getSessionDetails(sessionId: string): Promise<SessionDetailResponse> {
+  return fetchApi(`/sessions/${sessionId}`, {
+    method: 'GET',
   });
 }
 

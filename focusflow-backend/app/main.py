@@ -46,7 +46,7 @@ app = FastAPI(
 # allow_origins to your actual deployed frontend URL before going to prod.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"], # TODO: Restrict to your Vercel domain once deployed
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -64,6 +64,18 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
+@app.middleware("http")
+async def rewrite_default_path(request: Request, call_next):
+    """
+    AWS API Gateway sometimes leaves the stage name (e.g. /default) in the 
+    request path. FastAPI expects the pure path (e.g. /health).
+    This middleware transparently strips /default if it exists.
+    """
+    path = request.scope.get("path", "")
+    if path.startswith("/default"):
+        request.scope["path"] = path[8:] or "/"
+    return await call_next(request)
+
 
 app.include_router(sessions.router)
 app.include_router(insights.router)

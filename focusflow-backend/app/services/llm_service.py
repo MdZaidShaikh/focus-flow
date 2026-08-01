@@ -1,5 +1,3 @@
-import hashlib
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -20,7 +18,6 @@ class Subtask(BaseModel):
 
 class Breakdown(BaseModel):
     subtasks: List[Subtask]
-
 
 
 def break_down_task(raw_input: str) -> List[dict]:

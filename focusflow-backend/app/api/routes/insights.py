@@ -11,6 +11,7 @@ from app.models.db_models import User
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
+
 @router.get("", response_model=InsightsResponse)
 def get_insights(
     query: str = Query(..., description="e.g. 'what tasks do I tend to underestimate'"),
@@ -23,6 +24,10 @@ def get_insights(
     across just those retrieved sessions (not the user's entire history).
     """
     relevant = retrieve_similar_sessions(db, current_user.id, query)
-    insight = synthesize_insight(query, relevant) if relevant else "Not enough session history yet."
+    insight = (
+        synthesize_insight(query, relevant)
+        if relevant
+        else "Not enough session history yet."
+    )
 
     return InsightsResponse(query=query, relevant_sessions=relevant, insight=insight)

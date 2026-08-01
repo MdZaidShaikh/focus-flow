@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 
 
@@ -45,6 +45,7 @@ class InsightsResponse(BaseModel):
     relevant_sessions: List[str]  # summaries of the most similar past sessions
     insight: str  # LLM-generated synthesis of the pattern
 
+
 class SessionHistoryItem(BaseModel):
     id: str
     raw_input: str
@@ -55,8 +56,10 @@ class SessionHistoryItem(BaseModel):
     class Config:
         from_attributes = True
 
+
 class SessionHistoryResponse(BaseModel):
     sessions: List[SessionHistoryItem]
+
 
 class SessionDetailResponse(BaseModel):
     session_id: str

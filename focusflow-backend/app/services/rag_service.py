@@ -6,7 +6,9 @@ from app.models.db_models import SessionEmbedding
 from app.services.llm_service import embed_text
 
 
-def retrieve_similar_sessions(db: DBSession, user_id: str, query: str, top_k: int = 5) -> List[str]:
+def retrieve_similar_sessions(
+    db: DBSession, user_id: str, query: str, top_k: int = 5
+) -> List[str]:
     """
     Embeds the query, then finds the top_k most similar past session
     summaries for this user via pgvector cosine distance (<=>).
@@ -29,6 +31,8 @@ def retrieve_similar_sessions(db: DBSession, user_id: str, query: str, top_k: in
 def store_session_embedding(db: DBSession, session_id: str, summary_text: str) -> None:
     """Embeds and persists a session summary once the session is complete."""
     vector = embed_text(summary_text)
-    record = SessionEmbedding(session_id=session_id, summary_text=summary_text, embedding=vector)
+    record = SessionEmbedding(
+        session_id=session_id, summary_text=summary_text, embedding=vector
+    )
     db.add(record)
     db.commit()

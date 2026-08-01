@@ -163,7 +163,7 @@ function HomeContent() {
           <h1 className="font-display text-4xl md:text-5xl leading-tight text-ink">
             Say the day out loud.
             <br />
-            <span className="text-muted">We'll cut it into blocks you can finish.</span>
+            <span className="text-muted">We&apos;ll cut it into blocks you can finish.</span>
           </h1>
         </div>
         <button 
@@ -177,7 +177,7 @@ function HomeContent() {
       {/* Step 1: input */}
       <section className="mb-10">
         <label htmlFor="raw-input" className="block font-body text-sm text-muted mb-2">
-          What's on your plate today?
+          What&apos;s on your plate today?
         </label>
         <textarea
           id="raw-input"

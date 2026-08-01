@@ -38,7 +38,9 @@ class Session(Base):
 
     user = relationship("User", back_populates="sessions")
     tasks = relationship("Task", back_populates="session", cascade="all, delete-orphan")
-    embedding = relationship("SessionEmbedding", back_populates="session", uselist=False)
+    embedding = relationship(
+        "SessionEmbedding", back_populates="session", uselist=False
+    )
 
 
 class Task(Base):
@@ -52,7 +54,9 @@ class Task(Base):
     status = Column(String, default="pending")  # pending | in_progress | done | skipped
 
     session = relationship("Session", back_populates="tasks")
-    blocks = relationship("PomodoroBlock", back_populates="task", cascade="all, delete-orphan")
+    blocks = relationship(
+        "PomodoroBlock", back_populates="task", cascade="all, delete-orphan"
+    )
 
 
 class PomodoroBlock(Base):
@@ -79,7 +83,9 @@ class SessionEmbedding(Base):
     __tablename__ = "session_embeddings"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    session_id = Column(UUID(as_uuid=False), ForeignKey("sessions.id"), unique=True, nullable=False)
+    session_id = Column(
+        UUID(as_uuid=False), ForeignKey("sessions.id"), unique=True, nullable=False
+    )
     summary_text = Column(Text, nullable=False)  # the text that was embedded
     embedding = Column(Vector(3072), nullable=False)
 

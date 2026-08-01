@@ -1,4 +1,3 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DBSession
 
@@ -89,11 +88,16 @@ def get_session_details(
         raw_input=session.raw_input,
         day_start=session.day_start,
         day_end=session.day_end,
-        subtasks=[SubtaskOut(title=t.title, estimated_pomodoros=t.estimated_pomodoros) for t in tasks],
+        subtasks=[
+            SubtaskOut(title=t.title, estimated_pomodoros=t.estimated_pomodoros)
+            for t in tasks
+        ],
         blocks=[
             PomodoroBlockOut(
                 id=str(b.id),
-                task_title="Break" if b.is_break else title_by_task_id.get(b.task_id, "Unknown"),
+                task_title="Break"
+                if b.is_break
+                else title_by_task_id.get(b.task_id, "Unknown"),
                 start_time=b.start_time,
                 end_time=b.end_time,
                 is_break=b.is_break,
@@ -149,12 +153,16 @@ def schedule_session(
         raise HTTPException(status_code=404, detail="Session not found")
 
     tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()
-    subtasks = [{"title": t.title, "estimated_pomodoros": t.estimated_pomodoros} for t in tasks]
+    subtasks = [
+        {"title": t.title, "estimated_pomodoros": t.estimated_pomodoros} for t in tasks
+    ]
     task_by_title = {t.title: t for t in tasks}
 
     # Clear any blocks from a previous schedule call on this session
     # (session_id catches break blocks too, which have no task_id).
-    db.query(models.PomodoroBlock).filter(models.PomodoroBlock.session_id == session_id).delete()
+    db.query(models.PomodoroBlock).filter(
+        models.PomodoroBlock.session_id == session_id
+    ).delete()
 
     blocks = schedule_pomodoros(subtasks, session.day_start, session.day_end)
 
@@ -184,7 +192,9 @@ def schedule_session(
         blocks=[
             PomodoroBlockOut(
                 id=b.id,
-                task_title="Break" if b.is_break else title_by_task_id.get(b.task_id, "Unknown"),
+                task_title="Break"
+                if b.is_break
+                else title_by_task_id.get(b.task_id, "Unknown"),
                 start_time=b.start_time,
                 end_time=b.end_time,
                 is_break=b.is_break,
@@ -206,7 +216,7 @@ def update_block(
     block = db.get(models.PomodoroBlock, block_id)
     if not block:
         raise HTTPException(status_code=404, detail="Block not found")
-        
+
     # Verify the block belongs to a session owned by the user
     session = db.get(models.Session, block.session_id)
     if not session or session.user_id != current_user.id:

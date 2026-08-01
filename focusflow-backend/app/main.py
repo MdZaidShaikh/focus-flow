@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import sessions, insights
-from app.db.session import Base, SessionLocal, engine
+from app.db.session import SessionLocal
 from app.models import db_models
 
 PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000"
@@ -17,7 +17,11 @@ async def lifespan(app: FastAPI):
     try:
         db = SessionLocal()
         try:
-            existing_user = db.query(db_models.User).filter(db_models.User.id == PLACEHOLDER_USER_ID).first()
+            existing_user = (
+                db.query(db_models.User)
+                .filter(db_models.User.id == PLACEHOLDER_USER_ID)
+                .first()
+            )
             if not existing_user:
                 db.add(
                     db_models.User(
@@ -46,10 +50,11 @@ app = FastAPI(
 # allow_origins to your actual deployed frontend URL before going to prod.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # TODO: Restrict to your Vercel domain once deployed
+    allow_origins=["*"],  # TODO: Restrict to your Vercel domain once deployed
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
@@ -64,10 +69,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
+
 @app.middleware("http")
 async def rewrite_default_path(request: Request, call_next):
     """
-    AWS API Gateway sometimes leaves the stage name (e.g. /default) in the 
+    AWS API Gateway sometimes leaves the stage name (e.g. /default) in the
     request path. FastAPI expects the pure path (e.g. /health).
     This middleware transparently strips /default if it exists.
     """

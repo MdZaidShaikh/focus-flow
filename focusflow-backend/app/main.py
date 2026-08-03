@@ -58,15 +58,10 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    """
-    Without this, unhandled exceptions bypass CORSMiddleware entirely —
-    Starlette's default error response is generated above the CORS layer,
-    so the browser sees a response with no Access-Control-Allow-Origin
-    header and blocks it, surfacing as a confusing 'Failed to fetch' in
-    the frontend instead of the real error. This handler runs at a layer
-    where CORS headers still get attached, and returns the real error
-    message so the frontend (and you) can actually see what went wrong.
-    """
+    import traceback
+    with open("error.log", "a") as f:
+        f.write(f"\\n--- Exception at {request.url} ---\\n")
+        traceback.print_exc(file=f)
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 

@@ -108,6 +108,28 @@ def get_session_details(
     )
 
 
+@router.delete("/{session_id}", status_code=204)
+def delete_session(
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a session and all its associated tasks and blocks."""
+    session_id = session_id.strip()
+    session = db.get(models.Session, session_id)
+    if not session or session.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Manually delete dependent records to avoid foreign key violations if cascades aren't configured
+    db.query(models.PomodoroBlock).filter(models.PomodoroBlock.session_id == session.id).delete()
+    db.query(models.Task).filter(models.Task.session_id == session.id).delete()
+    db.query(models.SessionEmbedding).filter(models.SessionEmbedding.session_id == session.id).delete()
+    
+    db.delete(session)
+    db.commit()
+    return None
+
+
 @router.post("/{session_id}/breakdown", response_model=BreakdownResponse)
 def breakdown_session(
     session_id: str,
@@ -121,8 +143,9 @@ def breakdown_session(
 
     subtasks = break_down_task(session.raw_input)
 
-    # Clear any tasks from a previous breakdown call on this session, so
+    # Clear any tasks and blocks from a previous breakdown call on this session, so
     # re-running breakdown replaces rather than accumulates subtasks.
+    db.query(models.PomodoroBlock).filter(models.PomodoroBlock.session_id == session.id).delete()
     db.query(models.Task).filter(models.Task.session_id == session.id).delete()
 
     for subtask in subtasks:

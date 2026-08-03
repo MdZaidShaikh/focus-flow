@@ -72,6 +72,12 @@ export function createSession(data: { raw_input: string; day_start: string; day_
   });
 }
 
+export function deleteSession(sessionId: string): Promise<void> {
+  return fetchApi(`/sessions/${sessionId}`, {
+    method: 'DELETE',
+  });
+}
+
 export function breakdownSession(sessionId: string) {
   return fetchApi(`/sessions/${sessionId}/breakdown`, {
     method: 'POST',

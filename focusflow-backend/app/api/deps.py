@@ -118,9 +118,19 @@ def get_current_user(
     # Get or create the user based on the Cognito sub
     user = db.query(User).filter(User.cognito_sub == cognito_sub).first()
     if not user:
-        user = User(id=str(uuid.uuid4()), cognito_sub=cognito_sub, email=email)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        # If user deleted and recreated in Cognito, they will have a new sub but same email.
+        # We must update the sub instead of trying to insert a duplicate email.
+        existing_email_user = db.query(User).filter(User.email == email).first() if email else None
+        
+        if existing_email_user:
+            existing_email_user.cognito_sub = cognito_sub
+            db.commit()
+            db.refresh(existing_email_user)
+            user = existing_email_user
+        else:
+            user = User(id=str(uuid.uuid4()), cognito_sub=cognito_sub, email=email)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
 
     return user

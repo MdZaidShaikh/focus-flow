@@ -28,19 +28,16 @@ export const metadata = {
 };
 
 import AmplifyProvider from '@/components/AmplifyProvider';
-import Sidebar from '@/components/Sidebar';
+import ClientLayout from '@/components/ClientLayout';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${grotesk.variable} ${plexMono.variable}`}>
       <body className="font-body">
         <AmplifyProvider>
-          <div className="flex w-full min-h-screen">
-            <Sidebar />
-            <div className="flex-1 w-full overflow-y-auto bg-bg">
-              {children}
-            </div>
-          </div>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </AmplifyProvider>
       </body>
     </html>

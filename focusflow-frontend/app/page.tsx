@@ -105,6 +105,10 @@ function HomeContent() {
         window.dispatchEvent(new Event('session_update'));
       }
 
+      if (!currentSessionId) {
+        throw new Error('Failed to obtain a valid session ID');
+      }
+
       const breakdown = await breakdownSession(currentSessionId);
       setSubtasks(breakdown.subtasks);
       setStage('breakdown');

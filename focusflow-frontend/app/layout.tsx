@@ -3,14 +3,12 @@ import './globals.css';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
   variable: '--font-fraunces',
   display: 'swap',
 });
 
 const grotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
   variable: '--font-grotesk',
   display: 'swap',
 });

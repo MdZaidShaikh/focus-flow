@@ -17,24 +17,26 @@ def schedule_pomodoros(
     day_end: datetime,
 ) -> List[ScheduledBlock]:
     """
-    Packs estimated pomodoros into the available time window, inserting a
-    break after every work block. This is intentionally plain scheduling
-    logic (no LLM call) — the AI's job is breaking down the task, not
-    arithmetic on time slots.
-
-    If the day doesn't have enough room for every estimated pomodoro, the
-    schedule is truncated and the caller can decide how to surface that
-    (e.g. warn the user their day is overbooked).
+    Packs estimated minutes into the available time window.
+    Tasks longer than 60 minutes are chunked into 25-minute blocks with 5-minute breaks.
+    Tasks 60 minutes or shorter are scheduled as a single block.
     """
-    work_minutes = settings.default_pomodoro_minutes
+    chunk_minutes = settings.default_pomodoro_minutes
     break_minutes = settings.default_break_minutes
 
     blocks: List[ScheduledBlock] = []
     cursor = day_start
 
-    for subtask in subtasks:
-        for _ in range(subtask["estimated_pomodoros"]):
-            block_end = cursor + timedelta(minutes=work_minutes)
+    for idx, subtask in enumerate(subtasks):
+        remaining_minutes = subtask["estimated_minutes"]
+        
+        while remaining_minutes > 0:
+            if remaining_minutes > 60:
+                block_length = chunk_minutes
+            else:
+                block_length = remaining_minutes
+                
+            block_end = cursor + timedelta(minutes=block_length)
             if block_end > day_end:
                 return blocks  # ran out of day — stop scheduling
 
@@ -47,17 +49,22 @@ def schedule_pomodoros(
                 )
             )
             cursor = block_end
+            remaining_minutes -= block_length
 
-            break_end = cursor + timedelta(minutes=break_minutes)
-            if break_end <= day_end:
-                blocks.append(
-                    ScheduledBlock(
-                        task_title="Break",
-                        start_time=cursor,
-                        end_time=break_end,
-                        is_break=True,
+            # Add a break if there's more remaining in this task, or if we transition to a new task
+            if remaining_minutes > 0 or idx < len(subtasks) - 1:
+                break_end = cursor + timedelta(minutes=break_minutes)
+                if break_end <= day_end:
+                    blocks.append(
+                        ScheduledBlock(
+                            task_title="Break",
+                            start_time=cursor,
+                            end_time=break_end,
+                            is_break=True,
+                        )
                     )
-                )
-                cursor = break_end
+                    cursor = break_end
+                else:
+                    return blocks
 
     return blocks

@@ -11,7 +11,7 @@ class SessionCreate(BaseModel):
 
 class SubtaskOut(BaseModel):
     title: str
-    estimated_pomodoros: int
+    estimated_minutes: int
 
 
 class BreakdownResponse(BaseModel):
@@ -36,8 +36,12 @@ class ScheduleResponse(BaseModel):
     blocks: List[PomodoroBlockOut]
 
 
+from typing import List, Optional
+
 class BlockUpdate(BaseModel):
-    completed: bool
+    completed: Optional[bool] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
 
 
 class InsightsResponse(BaseModel):

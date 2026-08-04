@@ -34,6 +34,10 @@ export default function Sidebar({
       }
     }
     loadHistory();
+
+    const handleUpdate = () => loadHistory();
+    window.addEventListener('session_update', handleUpdate);
+    return () => window.removeEventListener('session_update', handleUpdate);
   }, [currentSessionId]);
 
   useEffect(() => {

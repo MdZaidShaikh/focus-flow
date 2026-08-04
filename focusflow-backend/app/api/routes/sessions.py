@@ -89,7 +89,7 @@ def get_session_details(
         day_start=session.day_start,
         day_end=session.day_end,
         subtasks=[
-            SubtaskOut(title=t.title, estimated_pomodoros=t.estimated_pomodoros)
+            SubtaskOut(title=t.title, estimated_minutes=t.estimated_minutes)
             for t in tasks
         ],
         blocks=[
@@ -129,6 +129,48 @@ def delete_session(
     db.commit()
     return None
 
+@router.put("/{session_id}", response_model=SessionDetailResponse)
+def update_session(
+    session_id: str,
+    payload: SessionCreate,
+    db: DBSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    session_id = session_id.strip()
+    session = db.get(models.Session, session_id)
+    if not session or session.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    session.raw_input = payload.raw_input
+    session.day_start = payload.day_start
+    session.day_end = payload.day_end
+    db.commit()
+    
+    tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()
+    blocks = db.query(models.PomodoroBlock).filter(models.PomodoroBlock.session_id == session_id).all()
+    
+    return SessionDetailResponse(
+        session_id=session.id,
+        raw_input=session.raw_input,
+        day_start=session.day_start,
+        day_end=session.day_end,
+        subtasks=[
+            SubtaskOut(title=t.title, estimated_minutes=t.estimated_minutes)
+            for t in tasks
+        ],
+        blocks=[
+            PomodoroBlockOut(
+                id=b.id,
+                task_title="Break" if b.is_break else (db.get(models.Task, b.task_id).title if b.task_id else "Unknown"),
+                start_time=b.start_time,
+                end_time=b.end_time,
+                is_break=b.is_break,
+                completed=b.completed,
+            )
+            for b in blocks
+        ],
+    )
+
 
 @router.post("/{session_id}/breakdown", response_model=BreakdownResponse)
 def breakdown_session(
@@ -153,7 +195,7 @@ def breakdown_session(
             models.Task(
                 session_id=session.id,
                 title=subtask["title"],
-                estimated_pomodoros=subtask["estimated_pomodoros"],
+                estimated_minutes=subtask["estimated_minutes"],
             )
         )
     db.commit()
@@ -177,7 +219,7 @@ def schedule_session(
 
     tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()
     subtasks = [
-        {"title": t.title, "estimated_pomodoros": t.estimated_pomodoros} for t in tasks
+        {"title": t.title, "estimated_minutes": t.estimated_minutes} for t in tasks
     ]
     task_by_title = {t.title: t for t in tasks}
 
@@ -228,8 +270,9 @@ def schedule_session(
     )
 
 
-@router.patch("/blocks/{block_id}")
+@router.patch("/{session_id}/blocks/{block_id}")
 def update_block(
+    session_id: str,
     block_id: str,
     payload: BlockUpdate,
     db: DBSession = Depends(get_db),
@@ -245,7 +288,13 @@ def update_block(
     if not session or session.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Block not found")
 
-    block.completed = payload.completed
+    if payload.completed is not None:
+        block.completed = payload.completed
+    if payload.start_time is not None:
+        block.start_time = payload.start_time
+    if payload.end_time is not None:
+        block.end_time = payload.end_time
+        
     db.commit()
     return {"ok": True}
 
@@ -267,7 +316,7 @@ def complete_session(
 
     tasks = db.query(models.Task).filter(models.Task.session_id == session_id).all()
     summary = "; ".join(
-        f"{t.title}: estimated {t.estimated_pomodoros}, actual {t.actual_pomodoros}, status {t.status}"
+        f"{t.title}: estimated {t.estimated_minutes}, actual {t.actual_minutes}, status {t.status}"
         for t in tasks
     )
     store_session_embedding(db, session_id, summary)

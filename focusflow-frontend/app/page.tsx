@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import { signOut } from 'aws-amplify/auth';
+import ReactMarkdown from 'react-markdown';
 import Timeline from '@/components/Timeline';
+import BlockList from '@/components/BlockList';
 import {
   createSession,
+  updateSession,
   breakdownSession,
   scheduleSession,
   completeSession,
@@ -83,14 +86,26 @@ function HomeContent() {
     setError(null);
     setLoading('breakdown');
     try {
-      const session = await createSession({
-        raw_input: rawInput,
-        day_start: new Date(dayStart).toISOString(),
-        day_end: new Date(dayEnd).toISOString(),
-      });
-      setSessionId(session.session_id);
+      let currentSessionId = sessionId;
+      if (currentSessionId) {
+        await updateSession(currentSessionId, {
+          raw_input: rawInput,
+          day_start: new Date(dayStart).toISOString(),
+          day_end: new Date(dayEnd).toISOString(),
+        });
+        window.dispatchEvent(new Event('session_update'));
+      } else {
+        const session = await createSession({
+          raw_input: rawInput,
+          day_start: new Date(dayStart).toISOString(),
+          day_end: new Date(dayEnd).toISOString(),
+        });
+        currentSessionId = session.session_id;
+        setSessionId(currentSessionId);
+        window.dispatchEvent(new Event('session_update'));
+      }
 
-      const breakdown = await breakdownSession(session.session_id);
+      const breakdown = await breakdownSession(currentSessionId);
       setSubtasks(breakdown.subtasks);
       setStage('breakdown');
     } catch (e) {
@@ -106,8 +121,12 @@ function HomeContent() {
     setLoading('schedule');
     try {
       const result = await scheduleSession(sessionId);
-      setBlocks(result.blocks);
-      setStage('scheduled');
+      if (result.blocks.length === 0) {
+        setError("Your schedule couldn't fit into this day. Try widening your start and end times.");
+      } else {
+        setBlocks(result.blocks);
+        setStage('scheduled');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not fit these into the day.');
     } finally {
@@ -121,6 +140,12 @@ function HomeContent() {
     setLoading('complete');
     try {
       await completeSession(sessionId);
+      // maybe show a success state or return to history
+      setStage('input');
+      setSessionId(null);
+      setBlocks([]);
+      setRawInput('');
+      window.dispatchEvent(new Event('session_update'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save this session.');
     } finally {
@@ -242,7 +267,7 @@ function HomeContent() {
               >
                 <span className="text-ink text-sm">{s.title}</span>
                 <span className="font-mono text-xs text-work whitespace-nowrap ml-4">
-                  {s.estimated_pomodoros} × 25m
+                  {s.estimated_minutes}m
                 </span>
               </li>
             ))}
@@ -273,6 +298,14 @@ function HomeContent() {
               <span className="w-2.5 h-2.5 rounded-sm bg-rest/30 inline-block" /> break
             </span>
           </div>
+
+          <BlockList 
+            blocks={blocks} 
+            sessionId={sessionId!} 
+            onBlockUpdated={(blockId, updates) => {
+              setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, ...updates } : b));
+            }}
+          />
 
           <button
             onClick={handleComplete}
@@ -307,9 +340,9 @@ function HomeContent() {
           </button>
         </div>
         {insight && (
-          <p className="mt-4 text-ink text-sm leading-relaxed bg-surface border-l-2 border-work rounded-r-md px-4 py-3">
-            {insight}
-          </p>
+          <div className="mt-4 text-ink text-sm leading-relaxed bg-surface border-l-2 border-work rounded-r-md px-4 py-3 prose prose-invert max-w-none">
+            <ReactMarkdown>{insight}</ReactMarkdown>
+          </div>
         )}
       </section>
     </main>

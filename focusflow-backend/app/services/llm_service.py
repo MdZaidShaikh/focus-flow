@@ -11,8 +11,8 @@ client = genai.Client(api_key=settings.gemini_api_key)
 
 class Subtask(BaseModel):
     title: str = Field(description="A concrete, actionable subtask")
-    estimated_pomodoros: int = Field(
-        description="Number of 25-minute pomodoros this subtask will take"
+    estimated_minutes: int = Field(
+        description="Number of minutes this subtask will take to complete"
     )
 
 
@@ -29,7 +29,9 @@ def break_down_task(raw_input: str) -> List[dict]:
         model=settings.gemini_model,
         input=(
             "Break the following goal/task list into concrete, actionable "
-            "subtasks with realistic pomodoro (25 min) time estimates. "
+            "subtasks with realistic time estimates in minutes. Tasks can be any length "
+            "based on effort. Large tasks taking more than 60 minutes should be broken down "
+            "into smaller chunks. "
             f"Input: {raw_input}"
         ),
         response_format={

@@ -49,8 +49,8 @@ class Task(Base):
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     session_id = Column(UUID(as_uuid=False), ForeignKey("sessions.id"), nullable=False)
     title = Column(String, nullable=False)
-    estimated_pomodoros = Column(Integer, nullable=False)
-    actual_pomodoros = Column(Integer, default=0)
+    estimated_minutes = Column(Integer, nullable=False)
+    actual_minutes = Column(Integer, default=0)
     status = Column(String, default="pending")  # pending | in_progress | done | skipped
 
     session = relationship("Session", back_populates="tasks")

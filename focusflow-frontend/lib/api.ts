@@ -4,7 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface Subtask {
   title: string;
-  estimated_pomodoros: number;
+  estimated_minutes: number;
 }
 
 export interface SessionHistoryItem {
@@ -47,6 +47,7 @@ async function fetchApi(path: string, options?: RequestInit) {
   }
 
   const res = await fetch(`${API_URL}${path}`, {
+    cache: 'no-store',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -69,6 +70,24 @@ export function createSession(data: { raw_input: string; day_start: string; day_
   return fetchApi('/sessions', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export function updateSession(sessionId: string, data: { raw_input: string; day_start: string; day_end: string }) {
+  return fetchApi(`/sessions/${sessionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateBlock(
+  sessionId: string,
+  blockId: string,
+  updates: { completed?: boolean; start_time?: string; end_time?: string }
+): Promise<any> {
+  return fetchApi(`/sessions/${sessionId}/blocks/${blockId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
   });
 }
 

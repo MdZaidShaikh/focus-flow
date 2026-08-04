@@ -31,8 +31,15 @@ def retrieve_similar_sessions(
 def store_session_embedding(db: DBSession, session_id: str, summary_text: str) -> None:
     """Embeds and persists a session summary once the session is complete."""
     vector = embed_text(summary_text)
-    record = SessionEmbedding(
-        session_id=session_id, summary_text=summary_text, embedding=vector
-    )
-    db.add(record)
+    record = db.query(SessionEmbedding).filter(SessionEmbedding.session_id == session_id).first()
+    
+    if record:
+        record.summary_text = summary_text
+        record.embedding = vector
+    else:
+        record = SessionEmbedding(
+            session_id=session_id, summary_text=summary_text, embedding=vector
+        )
+        db.add(record)
+        
     db.commit()
